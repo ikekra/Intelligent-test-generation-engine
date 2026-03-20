@@ -5,7 +5,9 @@
   "type": "module",
   "scripts": {
     "dev": "vite",
-    "dev:full": "concurrently \"vite\" \"node server/index.js\"",
+    "dev:client": "vite",
+    "dev:server": "node server/index.js",
+    "dev:full": "powershell -ExecutionPolicy Bypass -File scripts/dev-full.ps1",
     "build": "vite build",
     "lint": "eslint .",
     "preview": "vite preview",
@@ -23,7 +25,8 @@
     "multer": "^2.0.0",
     "openai": "^4.0.0",
     "react": "^19.2.4",
-    "react-dom": "^19.2.4"
+    "react-dom": "^19.2.4",
+    "react-router-dom": "^7.3.0"
   },
   "devDependencies": {
     "@eslint/js": "^9.39.4",
