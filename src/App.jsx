@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useState } from 'react'
+import { Link, Navigate, useLocation, useNavigate } from 'react-router-dom'
 import './App.css'
 
 const starterInput = `LANGUAGE: Python
@@ -37,6 +38,8 @@ def test_normalize_email__already_clean__returns_same_value():
     assert normalize_email("dev@team.io") == "dev@team.io"`
 
 function App() {
+  const navigate = useNavigate()
+  const location = useLocation()
   const saved = loadSettings()
   const [input, setInput] = useState(saved.input || starterInput)
   const [isGenerating, setIsGenerating] = useState(false)
@@ -84,10 +87,9 @@ function App() {
   const [preset, setPreset] = useState(saved.preset || 'python-pytest')
   const [fileOverrides, setFileOverrides] = useState(saved.fileOverrides || {})
   const [user, setUser] = useState(null)
+  const [authChecked, setAuthChecked] = useState(false)
   const [authMode, setAuthMode] = useState('login')
-  const [authEmail, setAuthEmail] = useState('')
-  const [authPassword, setAuthPassword] = useState('')
-  const [authName, setAuthName] = useState('')
+  const [authError, setAuthError] = useState('')
   const [dashboard, setDashboard] = useState(null)
   const [teams, setTeams] = useState([])
   const [workspaces, setWorkspaces] = useState([])
@@ -105,6 +107,43 @@ function App() {
   const [newWorkspaceDesc, setNewWorkspaceDesc] = useState('')
   const [adminAudit, setAdminAudit] = useState(null)
   const [teamMembers, setTeamMembers] = useState([])
+  const [assignments, setAssignments] = useState([])
+  const [selectedAssignmentId, setSelectedAssignmentId] = useState(
+    saved.selectedAssignmentId || '',
+  )
+  const [teamRole, setTeamRole] = useState('')
+  const [teamDashboard, setTeamDashboard] = useState(null)
+  const [reportStatus, setReportStatus] = useState('')
+  const [profileOpen, setProfileOpen] = useState(false)
+  const [workItems, setWorkItems] = useState([])
+  const [workStatus, setWorkStatus] = useState('')
+  const [adminUsers, setAdminUsers] = useState([])
+  const [userSearch, setUserSearch] = useState('')
+  const [profileName, setProfileName] = useState('')
+  const [profileMajor, setProfileMajor] = useState('')
+  const [profileYear, setProfileYear] = useState('')
+  const [profileUniversity, setProfileUniversity] = useState('')
+  const [profileBio, setProfileBio] = useState('')
+  const [profilePassword, setProfilePassword] = useState('')
+  const [profileStatus, setProfileStatus] = useState('')
+  const [comments, setComments] = useState([])
+  const [commentDraft, setCommentDraft] = useState('')
+  const [versions, setVersions] = useState([])
+  const [versionLabel, setVersionLabel] = useState('')
+  const [teamActivity, setTeamActivity] = useState([])
+  const [usage, setUsage] = useState(null)
+  const [navOpen, setNavOpen] = useState(false)
+  const [newAssignmentTitle, setNewAssignmentTitle] = useState('')
+  const [newAssignmentCourse, setNewAssignmentCourse] = useState('')
+  const [newAssignmentDue, setNewAssignmentDue] = useState('')
+  const [newAssignmentDesc, setNewAssignmentDesc] = useState('')
+  const [newAssignmentRubric, setNewAssignmentRubric] = useState('')
+  const [assignmentTemplate, setAssignmentTemplate] = useState('dsa')
+  const [rubricPreset, setRubricPreset] = useState('balanced')
+  const [integrityMode, setIntegrityMode] = useState(
+    saved.integrityMode ?? true,
+  )
+  const [studyMode, setStudyMode] = useState(saved.studyMode ?? false)
 
   const coverage = useMemo(() => {
     if (!hasResults) {
@@ -120,10 +159,114 @@ function App() {
     [streamText],
   )
 
+  const selectedAssignment = useMemo(
+    () => assignments.find((item) => item._id === selectedAssignmentId) || null,
+    [assignments, selectedAssignmentId],
+  )
+
+  const canTeacherView = ['owner', 'admin', 'teacher'].includes(teamRole)
+  const activePage = location.pathname.startsWith('/app/')
+    ? location.pathname.slice(5)
+    : 'dashboard'
+
+  const pageMeta = {
+    dashboard: {
+      eyebrow: 'Dashboard',
+      title: 'Your assignment test workspace.',
+      subtitle: 'Track runs, assignments, and team activity in one view.',
+    },
+    teams: {
+      eyebrow: 'Teams',
+      title: 'Collaborate with your project group.',
+      subtitle: 'Invite teammates and manage roles for the course project.',
+    },
+    assignments: {
+      eyebrow: 'Assignments',
+      title: 'Create assignment contexts and rubrics.',
+      subtitle: 'Use templates to keep test generation aligned to course goals.',
+    },
+    workspace: {
+      eyebrow: 'Workspace',
+      title: 'Generate tests that respect academic integrity.',
+      subtitle: 'Upload code, review coverage, and export test suites.',
+    },
+    teacher: {
+      eyebrow: 'Teacher',
+      title: 'Review team usage and activity.',
+      subtitle: 'Monitor runs and assignments at the team level.',
+    },
+    admin: {
+      eyebrow: 'Admin',
+      title: 'Audit platform activity.',
+      subtitle: 'Review users, runs, and assignments across the platform.',
+    },
+    users: {
+      eyebrow: 'Users',
+      title: 'Manage user accounts.',
+      subtitle: 'Search, filter, and review registered users.',
+    },
+    profile: {
+      eyebrow: 'Profile',
+      title: 'Your account settings.',
+      subtitle: 'Update your name and password.',
+    },
+    billing: {
+      eyebrow: 'Plans',
+      title: 'Student-first pricing.',
+      subtitle: 'Upgrade when you need more usage and exports.',
+    },
+  }
+
+  const isAppRoute = location.pathname.startsWith('/app/')
+
+  if (user && (location.pathname === '/' || location.pathname === '/login' || location.pathname === '/signup')) {
+    return <Navigate to="/app/dashboard" replace />
+  }
+  if (!user && isAppRoute) {
+    return <Navigate to="/" replace />
+  }
+
+  const showTeamsPage = activePage === 'teams'
+  const showAssignmentsPage = activePage === 'assignments'
+  const showWorkspacePage = activePage === 'workspace'
+  const showTeamGroup = showTeamsPage || showAssignmentsPage || showWorkspacePage
+
+  const onboardingSteps = [
+    { id: 'account', label: 'Create account', done: Boolean(user) },
+    { id: 'assignment', label: 'Create assignment', done: assignments.length > 0 },
+    { id: 'workspace', label: 'Create workspace', done: workspaces.length > 0 },
+    { id: 'run', label: 'Generate tests', done: (dashboard?.totalRuns || 0) > 0 },
+    { id: 'save', label: 'Save work', done: workItems.length > 0 },
+  ]
+  const completedSteps = onboardingSteps.filter((step) => step.done).length
+  const onboardingProgress = Math.round(
+    (completedSteps / onboardingSteps.length) * 100,
+  )
+
+  useEffect(() => {
+    if (user && location.pathname === '/') {
+      navigate('/app/dashboard')
+    }
+    if (!user && location.pathname.startsWith('/app/')) {
+      navigate('/')
+    }
+  }, [user, location.pathname, navigate])
+
+  useEffect(() => {
+    if (location.pathname === '/login') {
+      setAuthMode('login')
+    }
+    if (location.pathname === '/signup') {
+      setAuthMode('register')
+    }
+    setNavOpen(false)
+  }, [location.pathname])
+
   useLocalStorageSync({
     input,
     includeIntegration,
     includeRegression,
+    studyMode,
     language,
     framework,
     includePatterns,
@@ -134,11 +277,31 @@ function App() {
     fileOverrides,
     selectedTeamId,
     selectedWorkspaceId,
+    selectedAssignmentId,
+    integrityMode,
   })
 
   useEffect(() => {
     loadMe()
   }, [])
+
+  useEffect(() => {
+    if (user) {
+      setProfileName(user.name || '')
+      setProfileMajor(user.major || '')
+      setProfileYear(user.year || '')
+      setProfileUniversity(user.university || '')
+      setProfileBio(user.bio || '')
+    }
+  }, [user])
+
+  useEffect(() => {
+    if (user) {
+      loadComments()
+      loadVersions()
+      if (selectedTeamId && canTeacherView) loadTeamActivity(selectedTeamId)
+    }
+  }, [user, selectedTeamId, selectedAssignmentId, selectedWorkspaceId])
 
   const handleGenerate = async () => {
     setIsGenerating(true)
@@ -165,9 +328,11 @@ function App() {
           framework,
           teamId: selectedTeamId || null,
           workspaceId: selectedWorkspaceId || null,
+          assignmentId: selectedAssignmentId || null,
           options: {
             includeIntegration,
             includeRegression,
+            integrityMode,
           },
           stream: true,
         }),
@@ -319,10 +484,16 @@ function App() {
       loadTeams()
       loadWorkspaces()
       loadInvites()
-      if (data.isAdmin) loadAdminAudit()
+      loadAssignments()
+      if (data.isAdmin) {
+        loadAdminAudit()
+        loadAdminUsers()
+      }
       if (selectedTeamId) loadMembers(selectedTeamId)
     } catch (err) {
       setUser(null)
+    } finally {
+      setAuthChecked(true)
     }
   }
 
@@ -334,8 +505,74 @@ function App() {
       if (!response.ok) return
       const data = await response.json()
       setDashboard(data)
+      setWorkItems(data.recentWork || [])
+      setUsage(data.usage || null)
     } catch (err) {
       setDashboard(null)
+    }
+  }
+
+  const loadWorkItems = async () => {
+    try {
+      const response = await fetch('/api/work', { credentials: 'include' })
+      if (!response.ok) return
+      const data = await response.json()
+      setWorkItems(data.work || [])
+    } catch (err) {
+      setWorkItems([])
+    }
+  }
+
+  const loadComments = async () => {
+    try {
+      const query = selectedTeamId
+        ? `?teamId=${selectedTeamId}`
+        : selectedAssignmentId
+          ? `?assignmentId=${selectedAssignmentId}`
+          : ''
+      const response = await fetch(`/api/comments${query}`, {
+        credentials: 'include',
+      })
+      if (!response.ok) return
+      const data = await response.json()
+      setComments(data.comments || [])
+    } catch (err) {
+      setComments([])
+    }
+  }
+
+  const loadVersions = async () => {
+    try {
+      const query = selectedWorkspaceId
+        ? `?workspaceId=${selectedWorkspaceId}`
+        : selectedAssignmentId
+          ? `?assignmentId=${selectedAssignmentId}`
+          : ''
+      const response = await fetch(`/api/versions${query}`, {
+        credentials: 'include',
+      })
+      if (!response.ok) return
+      const data = await response.json()
+      setVersions(data.versions || [])
+    } catch (err) {
+      setVersions([])
+    }
+  }
+
+  const loadTeamActivity = async (teamId) => {
+    if (!teamId) {
+      setTeamActivity([])
+      return
+    }
+    try {
+      const response = await fetch(`/api/teams/${teamId}/activity`, {
+        credentials: 'include',
+      })
+      if (!response.ok) return
+      const data = await response.json()
+      setTeamActivity(data.activity || [])
+    } catch (err) {
+      setTeamActivity([])
     }
   }
 
@@ -358,6 +595,55 @@ function App() {
       setWorkspaces(data.workspaces || [])
     } catch (err) {
       setWorkspaces([])
+    }
+  }
+
+  const loadTeamRole = async (teamId) => {
+    if (!teamId) {
+      setTeamRole('')
+      return
+    }
+    try {
+      const response = await fetch(`/api/teams/${teamId}/role`, {
+        credentials: 'include',
+      })
+      if (!response.ok) return
+      const data = await response.json()
+      setTeamRole(data.role || '')
+    } catch (err) {
+      setTeamRole('')
+    }
+  }
+
+  const loadTeamDashboard = async (teamId) => {
+    if (!teamId) {
+      setTeamDashboard(null)
+      return
+    }
+    try {
+      const response = await fetch(`/api/teams/${teamId}/dashboard`, {
+        credentials: 'include',
+      })
+      if (!response.ok) return
+      const data = await response.json()
+      setTeamDashboard(data)
+    } catch (err) {
+      setTeamDashboard(null)
+    }
+  }
+
+  const loadAssignments = async (teamIdOverride) => {
+    try {
+      const query = teamIdOverride || selectedTeamId
+      const response = await fetch(
+        `/api/assignments${query ? `?teamId=${query}` : ''}`,
+        { credentials: 'include' },
+      )
+      if (!response.ok) return
+      const data = await response.json()
+      setAssignments(data.assignments || [])
+    } catch (err) {
+      setAssignments([])
     }
   }
 
@@ -404,14 +690,40 @@ function App() {
     }
   }
 
-  const handleAuth = async () => {
-    setError('')
+  const loadAdminUsers = async () => {
     try {
-      const endpoint = authMode === 'login' ? '/api/auth/login' : '/api/auth/register'
+      const response = await fetch('/api/admin/users', {
+        credentials: 'include',
+      })
+      if (!response.ok) return
+      const data = await response.json()
+      setAdminUsers(data.users || [])
+    } catch (err) {
+      setAdminUsers([])
+    }
+  }
+
+  const handleAuth = async ({ mode, email, password, name }) => {
+    setAuthError('')
+    const normalizedEmail = email.trim().toLowerCase()
+    if (!normalizedEmail || !password) {
+      setAuthError('Email and password are required.')
+      return
+    }
+    if (!isValidEmail(normalizedEmail)) {
+      setAuthError('Invalid email format.')
+      return
+    }
+    if (!isValidPassword(password)) {
+      setAuthError('Password must be at least 8 characters.')
+      return
+    }
+    try {
+      const endpoint = mode === 'login' ? '/api/auth/login' : '/api/auth/register'
       const payload =
-        authMode === 'login'
-          ? { email: authEmail, password: authPassword }
-          : { email: authEmail, password: authPassword, name: authName }
+        mode === 'login'
+          ? { email: normalizedEmail, password }
+          : { email: normalizedEmail, password, name }
       const response = await fetch(endpoint, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -419,16 +731,20 @@ function App() {
         body: JSON.stringify(payload),
       })
       const data = await response.json()
-      if (!response.ok) throw new Error(data.error || 'Auth failed.')
+      if (!response.ok)
+        throw new Error(data.error || data.detail || 'Auth failed.')
       setUser(data)
-      setAuthPassword('')
       loadDashboard()
       loadTeams()
       loadWorkspaces()
       loadInvites()
-      if (data.isAdmin) loadAdminAudit()
+      if (data.isAdmin) {
+        loadAdminAudit()
+        loadAdminUsers()
+      }
+      navigate('/app/dashboard')
     } catch (err) {
-      setError(err.message || 'Auth failed.')
+      setAuthError(err.message || 'Auth failed.')
     }
   }
 
@@ -440,6 +756,11 @@ function App() {
     setWorkspaces([])
     setInvites([])
     setAdminAudit(null)
+    setAssignments([])
+    setSelectedAssignmentId('')
+    setTeamRole('')
+    setTeamDashboard(null)
+    navigate('/')
   }
 
   const handleResetUi = () => {
@@ -499,12 +820,172 @@ function App() {
         name: newWorkspaceName,
         description: newWorkspaceDesc,
         teamId: selectedTeamId || null,
+        assignmentId: selectedAssignmentId || null,
       }),
     })
     if (response.ok) {
       setNewWorkspaceName('')
       setNewWorkspaceDesc('')
       loadWorkspaces()
+    }
+  }
+
+  const handleCreateAssignment = async () => {
+    if (!newAssignmentTitle) return
+    const response = await fetch('/api/assignments', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      credentials: 'include',
+      body: JSON.stringify({
+        title: newAssignmentTitle,
+        course: newAssignmentCourse,
+        dueDate: newAssignmentDue || null,
+        description: newAssignmentDesc,
+        rubric: newAssignmentRubric,
+        teamId: selectedTeamId || null,
+        integrityMode,
+      }),
+    })
+    if (response.ok) {
+      setNewAssignmentTitle('')
+      setNewAssignmentCourse('')
+      setNewAssignmentDue('')
+      setNewAssignmentDesc('')
+      setNewAssignmentRubric('')
+      setAssignmentTemplate('dsa')
+      setRubricPreset('balanced')
+      loadAssignments()
+    }
+  }
+
+  const handleDeleteAssignment = async (assignmentId) => {
+    if (!assignmentId) return
+    await fetch(`/api/assignments/${assignmentId}`, {
+      method: 'DELETE',
+      credentials: 'include',
+    })
+    if (selectedAssignmentId === assignmentId) {
+      setSelectedAssignmentId('')
+    }
+    loadAssignments()
+  }
+
+  const handleExportAssignmentReport = async (assignmentId, format) => {
+    if (!assignmentId) return
+    setReportStatus('Exporting report...')
+    try {
+      const response = await fetch(
+        `/api/assignments/${assignmentId}/report?format=${format}`,
+        { credentials: 'include' },
+      )
+      const data = await response.json()
+      if (!response.ok) throw new Error(data.error || 'Export failed.')
+      setReportStatus(`Report saved to ${data.path}`)
+    } catch (err) {
+      setReportStatus(err.message || 'Export failed.')
+    }
+  }
+
+  const handleSaveWork = async () => {
+    if (!result?.generated_tests) {
+      setWorkStatus('No generated tests to save.')
+      return
+    }
+    setWorkStatus('Saving...')
+    try {
+      const response = await fetch('/api/work', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        credentials: 'include',
+        body: JSON.stringify({
+          title: selectedAssignment?.title || 'Generated test suite',
+          content: result.generated_tests,
+          language,
+          framework,
+          teamId: selectedTeamId || null,
+          assignmentId: selectedAssignmentId || null,
+          workspaceId: selectedWorkspaceId || null,
+        }),
+      })
+      const data = await response.json()
+      if (!response.ok) throw new Error(data.error || 'Save failed.')
+      setWorkStatus('Saved to your library.')
+      loadWorkItems()
+    } catch (err) {
+      setWorkStatus(err.message || 'Save failed.')
+    }
+  }
+
+  const handleProfileSave = async () => {
+    setProfileStatus('Saving...')
+    try {
+      const response = await fetch('/api/profile', {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        credentials: 'include',
+        body: JSON.stringify({
+          name: profileName,
+          major: profileMajor,
+          year: profileYear,
+          university: profileUniversity,
+          bio: profileBio,
+          password: profilePassword || undefined,
+        }),
+      })
+      const data = await response.json()
+      if (!response.ok) throw new Error(data.error || 'Update failed.')
+      setUser(data)
+      setProfilePassword('')
+      setProfileStatus('Profile updated.')
+    } catch (err) {
+      setProfileStatus(err.message || 'Update failed.')
+    }
+  }
+
+  const handleAddComment = async () => {
+    if (!commentDraft.trim()) return
+    try {
+      const response = await fetch('/api/comments', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        credentials: 'include',
+        body: JSON.stringify({
+          message: commentDraft.trim(),
+          teamId: selectedTeamId || null,
+          assignmentId: selectedAssignmentId || null,
+          workspaceId: selectedWorkspaceId || null,
+        }),
+      })
+      const data = await response.json()
+      if (!response.ok) throw new Error(data.error || 'Comment failed.')
+      setCommentDraft('')
+      loadComments()
+    } catch (err) {
+      setCommentDraft(err.message || 'Comment failed.')
+    }
+  }
+
+  const handleSaveVersion = async () => {
+    if (!versionLabel.trim() || !result?.generated_tests) return
+    try {
+      const response = await fetch('/api/versions', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        credentials: 'include',
+        body: JSON.stringify({
+          label: versionLabel.trim(),
+          content: result.generated_tests,
+          teamId: selectedTeamId || null,
+          assignmentId: selectedAssignmentId || null,
+          workspaceId: selectedWorkspaceId || null,
+        }),
+      })
+      const data = await response.json()
+      if (!response.ok) throw new Error(data.error || 'Version save failed.')
+      setVersionLabel('')
+      loadVersions()
+    } catch (err) {
+      setVersionLabel(err.message || 'Version save failed.')
     }
   }
 
@@ -519,12 +1000,14 @@ function App() {
           input,
           includeIntegration,
           includeRegression,
+          integrityMode,
           language,
           framework,
           includePatterns,
           excludePatterns,
           preset,
           fileOverrides,
+          selectedAssignmentId,
         },
         fileList: files.map((file) => file.name),
       }),
@@ -544,6 +1027,9 @@ function App() {
       setIncludeIntegration(state.includeIntegration)
     if (state.includeRegression !== undefined)
       setIncludeRegression(state.includeRegression)
+    if (state.integrityMode !== undefined)
+      setIntegrityMode(state.integrityMode)
+    if (state.studyMode !== undefined) setStudyMode(state.studyMode)
     if (state.language) setLanguage(state.language)
     if (state.framework) setFramework(state.framework)
     if (state.includePatterns !== undefined)
@@ -552,6 +1038,8 @@ function App() {
       setExcludePatterns(state.excludePatterns)
     if (state.preset) setPreset(state.preset)
     if (state.fileOverrides) setFileOverrides(state.fileOverrides)
+    if (state.selectedAssignmentId)
+      setSelectedAssignmentId(state.selectedAssignmentId)
   }
 
   const handleMemberRole = async (memberId, role) => {
@@ -574,12 +1062,92 @@ function App() {
     loadMembers(selectedTeamId)
   }
 
+  const AuthForm = () => {
+    const [email, setEmail] = useState('')
+    const [password, setPassword] = useState('')
+    const [name, setName] = useState('')
+
+    useEffect(() => {
+      setPassword('')
+    }, [authMode])
+
+    return (
+      <form
+        className="account-form"
+        onSubmit={(event) => {
+          event.preventDefault()
+          handleAuth({ mode: authMode, email, password, name })
+        }}
+      >
+        <div className="button-row">
+          <button
+            type="button"
+            className={`ghost small ${authMode === 'login' ? 'active' : ''}`}
+            onClick={() => setAuthMode('login')}
+          >
+            Login
+          </button>
+          <button
+            type="button"
+            className={`ghost small ${authMode === 'register' ? 'active' : ''}`}
+            onClick={() => setAuthMode('register')}
+          >
+            Register
+          </button>
+        </div>
+        {authMode === 'register' && (
+          <label>
+            Name
+            <input
+              placeholder="Your name"
+              value={name}
+              onChange={(event) => setName(event.target.value)}
+              autoComplete="name"
+            />
+          </label>
+        )}
+        <label>
+          Email
+          <input
+            placeholder="you@school.edu"
+            value={email}
+            onChange={(event) => setEmail(event.target.value)}
+            autoComplete="email"
+          />
+        </label>
+        <label>
+          Password
+          <input
+            placeholder="Minimum 8 characters"
+            type="password"
+            value={password}
+            onChange={(event) => setPassword(event.target.value)}
+            autoComplete={
+              authMode === 'login' ? 'current-password' : 'new-password'
+            }
+          />
+        </label>
+        <button className="primary" type="submit">
+          {authMode === 'login' ? 'Login' : 'Create account'}
+        </button>
+        {authError && <div className="error">{authError}</div>}
+        <p className="hint">
+          {authMode === 'login' ? (
+            <Link to="/signup">Need an account? Create one</Link>
+          ) : (
+            <Link to="/login">Already have an account? Login</Link>
+          )}
+        </p>
+      </form>
+    )
+  }
+
   const authPanel = (
-    <div className="panel">
+    <div className="panel auth-panel">
       <div className="panel-header">
         <div>
           <h2>{user ? 'Account' : 'Sign in'}</h2>
-          <p>{user ? 'Manage your workspace' : 'Access your live dashboard'}</p>
+          <p>{user ? 'Manage your workspace' : 'Access your student dashboard'}</p>
         </div>
         <span className="status">{user ? 'Active' : 'Guest'}</span>
       </div>
@@ -599,144 +1167,219 @@ function App() {
           </div>
         </div>
       ) : (
-        <div className="account-form">
-          <div className="button-row">
-            <button
-              className={`ghost small ${authMode === 'login' ? 'active' : ''}`}
-              onClick={() => setAuthMode('login')}
-            >
-              Login
-            </button>
-            <button
-              className={`ghost small ${authMode === 'register' ? 'active' : ''}`}
-              onClick={() => setAuthMode('register')}
-            >
-              Register
-            </button>
-          </div>
-          {authMode === 'register' && (
-            <label>
-              Name
-              <input
-                placeholder="Your name"
-                value={authName}
-                onChange={(event) => setAuthName(event.target.value)}
-              />
-            </label>
-          )}
-          <label>
-            Email
-            <input
-              placeholder="you@company.com"
-              value={authEmail}
-              onChange={(event) => setAuthEmail(event.target.value)}
-            />
-          </label>
-          <label>
-            Password
-            <input
-              placeholder="Minimum 8 characters"
-              type="password"
-              value={authPassword}
-              onChange={(event) => setAuthPassword(event.target.value)}
-            />
-          </label>
-          <button className="primary" onClick={handleAuth}>
-            {authMode === 'login' ? 'Login' : 'Create account'}
-          </button>
-        </div>
+        <AuthForm />
       )}
     </div>
   )
 
+  const AuthPage = () => (
+    <div className="auth-page">
+      <div className="auth-left">
+        <div className="brand">
+          <span className="logo-dot"></span>
+          Student Test Studio
+        </div>
+        <h1>Ship tests that feel instructor‑ready.</h1>
+        <p>
+          Built for students. Generate rubric‑aligned tests, collaborate with
+          your team, and keep integrity intact.
+        </p>
+        <div className="auth-bullets">
+          <div>Rubric‑aligned test generation</div>
+          <div>Team workspaces and comments</div>
+          <div>Teacher reports and audit trails</div>
+        </div>
+      </div>
+      <div className="auth-right">{authPanel}</div>
+    </div>
+  )
+
   if (!user) {
+    if (location.pathname === '/login' || location.pathname === '/signup') {
+      return <AuthPage />
+    }
     return (
       <div className="app landing">
         <nav className="top-nav">
           <div className="brand">
             <span className="logo-dot"></span>
-            Intelligent Test Generation Engine
+            Student Test Studio
           </div>
           <div className="nav-actions">
-            <button className="ghost small" onClick={() => setAuthMode('login')}>
+            <Link className="ghost small button-link" to="/login">
               Login
-            </button>
-            <button className="primary" onClick={() => setAuthMode('register')}>
+            </Link>
+            <Link className="primary button-link" to="/signup">
               Start free
-            </button>
+            </Link>
           </div>
         </nav>
 
         <header className="hero landing-hero">
           <div className="hero-copy">
-            <div className="hero-eyebrow">AI Quality Platform</div>
-            <h1>Enterprise-grade test generation for modern teams.</h1>
+            <div className="hero-eyebrow">Student SaaS Studio</div>
+            <h1>Generate assignment-ready tests in minutes, not nights.</h1>
             <p className="hero-subtitle">
-              Paste code, detect coverage gaps, and generate production-ready
-              tests with risk analysis in seconds.
+              Built by a student, for students. Turn your code into disciplined
+              test suites, collaborate with your project team, and keep academic
+              integrity intact.
             </p>
             <div className="hero-actions">
-              <button className="primary" onClick={() => setAuthMode('register')}>
-                Create account
-              </button>
-              <button className="ghost">View demo output</button>
+              <Link className="primary button-link" to="/signup">
+                Start free
+              </Link>
+              <Link className="ghost button-link" to="/login">
+                Login
+              </Link>
             </div>
             <div className="hero-stats">
               <div>
                 <span className="stat-value">+36%</span>
-                <span className="stat-label">Branch coverage lift</span>
+                <span className="stat-label">Coverage lift</span>
               </div>
               <div>
-                <span className="stat-value">12</span>
-                <span className="stat-label">Risk paths flagged</span>
+                <span className="stat-value">6</span>
+                <span className="stat-label">Assignment templates</span>
               </div>
               <div>
-                <span className="stat-value">48s</span>
+                <span className="stat-value">2m</span>
                 <span className="stat-label">Average time to suite</span>
               </div>
             </div>
           </div>
-          <div className="hero-card">{authPanel}</div>
+          <div className="hero-card">
+            <div className="panel">
+              <h3>Get started fast</h3>
+              <p className="hint">
+                Create an account to save runs, track progress, and export reports.
+              </p>
+              <div className="button-row">
+                <Link className="primary button-link" to="/signup">
+                  Create account
+                </Link>
+                <Link className="ghost button-link" to="/login">
+                  Login
+                </Link>
+              </div>
+            </div>
+          </div>
         </header>
+
+        <section className="trust">
+          <div className="trust-label">Used in student projects across</div>
+          <div className="trust-row">
+            <span>CS101</span>
+            <span>Data Structures</span>
+            <span>OOP</span>
+            <span>Database Systems</span>
+            <span>Software Engineering</span>
+          </div>
+        </section>
 
         <section className="features">
           <div className="feature-card">
-            <h3>Coverage intelligence</h3>
-            <p>Automated branch mapping with prioritized gaps.</p>
+            <h3>Rubric-aligned tests</h3>
+            <p>Generate suites mapped to instructor expectations.</p>
           </div>
           <div className="feature-card">
-            <h3>Team workflows</h3>
-            <p>Shared workspaces, invites, and audit-ready history.</p>
+            <h3>Team collaboration</h3>
+            <p>Shared workspaces, invites, and visibility for group work.</p>
           </div>
           <div className="feature-card">
-            <h3>Enterprise controls</h3>
-            <p>Usage limits, admin dashboards, and policy enforcement.</p>
+            <h3>Integrity-first</h3>
+            <p>Plagiarism-safe guidance and black-box testing prompts.</p>
+          </div>
+        </section>
+
+        <section className="how">
+          <div className="how-copy">
+            <h2>How it works</h2>
+            <p>
+              A clean, student-friendly workflow that turns a messy assignment
+              into an organized test suite.
+            </p>
+          </div>
+          <div className="how-steps">
+            <div className="panel">
+              <h3>1. Create assignment</h3>
+              <p>Pick a template, add rubric focus, and set due dates.</p>
+            </div>
+            <div className="panel">
+              <h3>2. Upload or paste code</h3>
+              <p>Bring in your project files and context in one shot.</p>
+            </div>
+            <div className="panel">
+              <h3>3. Generate & save</h3>
+              <p>Export tests, save to your library, and share with your team.</p>
+            </div>
+          </div>
+        </section>
+
+        <section className="student-focus">
+          <div className="panel highlight">
+            <h2>Built for students</h2>
+            <p>
+              Clear feedback, progress-focused dashboards, and workflows tuned
+              for deadlines, labs, and group submissions.
+            </p>
+          </div>
+          <div className="panel">
+            <h3>Teacher-ready reporting</h3>
+            <p>Assignment reports and audit trails for instructors.</p>
           </div>
         </section>
 
         <section className="pricing">
           <div>
-            <h2>Simple pricing</h2>
-            <p>Start free, scale as your team ships.</p>
+            <h2>Student-first</h2>
+            <p>Built by students, for students.</p>
           </div>
           <div className="pricing-grid">
             <div className="panel">
-              <h3>Starter</h3>
-              <p className="price">$0</p>
-              <p>Personal workspace and local runs.</p>
+              <h3>Solo</h3>
+              <p className="price">Free</p>
+              <p>Personal workspace and assignment presets.</p>
             </div>
             <div className="panel highlight">
-              <h3>Team</h3>
-              <p className="price">$49</p>
-              <p>Team workspaces, shared runs, and admin audit.</p>
+              <h3>Project Team</h3>
+              <p className="price">Free</p>
+              <p>Team workspaces, shared runs, and teacher visibility.</p>
             </div>
             <div className="panel">
-              <h3>Enterprise</h3>
-              <p className="price">Custom</p>
-              <p>Dedicated models, SSO, and advanced governance.</p>
+              <h3>Campus</h3>
+              <p className="price">Pilot</p>
+              <p>Department-wide usage limits and dashboards.</p>
             </div>
           </div>
         </section>
+
+        <section className="faq">
+          <div className="panel">
+            <h2>FAQ</h2>
+            <div className="faq-grid">
+              <div>
+                <h4>Is this allowed for assignments?</h4>
+                <p>
+                  Use it for testing, not for writing solutions. Integrity mode
+                  keeps guidance aligned to course rules.
+                </p>
+              </div>
+              <div>
+                <h4>Can I work with my group?</h4>
+                <p>Yes. Invite teammates and share a workspace.</p>
+              </div>
+              <div>
+                <h4>Do instructors get reports?</h4>
+                <p>Yes. Export assignment reports from the teacher dashboard.</p>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        <footer className="footer">
+          <span>Student Test Studio</span>
+          <span>Built by students for students</span>
+        </footer>
       </div>
     )
   }
@@ -746,15 +1389,105 @@ function App() {
       <nav className="top-nav">
         <div className="brand">
           <span className="logo-dot"></span>
-          Intelligent Test Generation Engine
+          Student Test Studio
+        </div>
+        <div className={`nav-links ${navOpen ? 'open' : ''}`}>
+          <Link
+            className={`nav-link ${activePage === 'dashboard' ? 'active' : ''}`}
+            to="/app/dashboard"
+          >
+            Dashboard
+          </Link>
+          <Link
+            className={`nav-link ${activePage === 'teams' ? 'active' : ''}`}
+            to="/app/teams"
+          >
+            Teams
+          </Link>
+          <Link
+            className={`nav-link ${activePage === 'assignments' ? 'active' : ''}`}
+            to="/app/assignments"
+          >
+            Assignments
+          </Link>
+          <Link
+            className={`nav-link ${activePage === 'workspace' ? 'active' : ''}`}
+            to="/app/workspace"
+          >
+            Workspace
+          </Link>
+          <Link
+            className={`nav-link ${activePage === 'profile' ? 'active' : ''}`}
+            to="/app/profile"
+          >
+            Profile
+          </Link>
+          <Link
+            className={`nav-link ${activePage === 'billing' ? 'active' : ''}`}
+            to="/app/billing"
+          >
+            Plans
+          </Link>
+          {canTeacherView && (
+            <Link
+              className={`nav-link ${activePage === 'teacher' ? 'active' : ''}`}
+              to="/app/teacher"
+            >
+              Teacher
+            </Link>
+          )}
+          {user?.isAdmin && (
+            <Link
+              className={`nav-link ${activePage === 'admin' ? 'active' : ''}`}
+              to="/app/admin"
+            >
+              Admin
+            </Link>
+          )}
+          {user?.isAdmin && (
+            <Link
+              className={`nav-link ${activePage === 'users' ? 'active' : ''}`}
+              to="/app/users"
+            >
+              Users
+            </Link>
+          )}
         </div>
         <div className="nav-actions">
+          <button
+            className="ghost small nav-toggle"
+            onClick={() => setNavOpen((prev) => !prev)}
+          >
+            {navOpen ? 'Close' : 'Menu'}
+          </button>
           <button className="ghost small" onClick={handleResetUi}>
             Reset UI
           </button>
-          <button className="ghost small" onClick={handleLogout}>
-            Log out
-          </button>
+          <div className="profile">
+            <button
+              className="ghost small"
+              onClick={() => setProfileOpen((prev) => !prev)}
+            >
+              {user?.name || user?.email || 'Profile'}
+            </button>
+            {profileOpen && (
+              <div className="profile-card">
+                <p className="label">Account</p>
+                <h4>{user?.name || 'Student'}</h4>
+                <p className="hint">{user?.email}</p>
+                <p className="hint">
+                  Role: {user?.isAdmin ? 'Admin' : teamRole || 'Member'}
+                </p>
+                <p className="hint">Plan: {user?.plan || 'free'}</p>
+                <Link className="ghost small" to="/app/profile">
+                  Edit profile
+                </Link>
+                <button className="ghost small" onClick={handleLogout}>
+                  Log out
+                </button>
+              </div>
+            )}
+          </div>
         </div>
       </nav>
 
@@ -769,6 +1502,16 @@ function App() {
             <p>{selectedTeamId ? 'Team scope' : 'Personal scope'}</p>
           </div>
           <div className="sidebar-group">
+            <h4>Assignment</h4>
+            <p>{selectedAssignmentId ? 'Assignment linked' : 'No assignment'}</p>
+          </div>
+          {canTeacherView && (
+            <div className="sidebar-group">
+              <h4>Teacher</h4>
+              <p>Teacher mode enabled</p>
+            </div>
+          )}
+          <div className="sidebar-group">
             <h4>Usage</h4>
             <p>{tokenEstimate} tokens (latest)</p>
           </div>
@@ -776,34 +1519,122 @@ function App() {
 
         <main className="shell-main">
           <header className="hero">
-            <div className="hero-eyebrow">Workspace</div>
-            <h1>Generate tests with audit-ready traceability.</h1>
+            <div className="hero-eyebrow">
+              {(pageMeta[activePage] || pageMeta.dashboard).eyebrow}
+            </div>
+            <h1>{(pageMeta[activePage] || pageMeta.dashboard).title}</h1>
             <p className="hero-subtitle">
-              Build, review, and export a full suite with coverage guidance and
-              team governance in one workspace.
+              {(pageMeta[activePage] || pageMeta.dashboard).subtitle}
             </p>
           </header>
 
-          <section className="account">
-            {authPanel}
-            <div className="panel">
-              <div className="panel-header">
-                <div>
-                  <h2>Live dashboard</h2>
-                  <p>Track your runs and coverage gains.</p>
-                </div>
-                <span className="status">{user ? 'Live' : 'Locked'}</span>
+      {activePage === 'dashboard' && (
+        <section className="account">
+          {authPanel}
+          <div className="panel">
+            <div className="panel-header">
+              <div>
+                <h2>Live dashboard</h2>
+                <p>Track your runs and coverage gains.</p>
               </div>
-              {user && dashboard ? (
-                <div className="dashboard">
-                  <div className="dashboard-grid">
-                    <div className="card">
-                      <h4>Total runs</h4>
-                      <p>{dashboard.totalRuns}</p>
+              <span className="status">{user ? 'Live' : 'Locked'}</span>
+            </div>
+            {user && dashboard ? (
+              <div className="dashboard">
+                <div className="card onboarding">
+                      <div>
+                        <h4>Getting started</h4>
+                        <p className="hint">
+                          Complete these steps to set up your first project.
+                        </p>
+                      </div>
+                      <div className="progress">
+                        <div className="progress-bar">
+                          <div
+                            className="progress-fill"
+                            style={{ width: `${onboardingProgress}%` }}
+                          ></div>
+                        </div>
+                        <span>{onboardingProgress}%</span>
+                      </div>
+                      <ul className="checklist">
+                        {onboardingSteps.map((step) => (
+                          <li key={step.id} className={step.done ? 'done' : ''}>
+                            <span>{step.done ? '✓' : '•'}</span>
+                            {step.label}
+                          </li>
+                        ))}
+                      </ul>
+                  </div>
+                  {usage && (
+                    <div className="card usage">
+                      <h4>Daily usage</h4>
+                      <div className="usage-row">
+                        <span>Runs</span>
+                        <span>
+                          {usage.runsToday}/{usage.runsLimit}
+                        </span>
+                      </div>
+                      <div className="usage-bar">
+                        <div
+                          className="usage-fill"
+                          style={{
+                            width: `${Math.min(
+                              100,
+                              (usage.runsToday / usage.runsLimit) * 100,
+                            )}%`,
+                          }}
+                        ></div>
+                      </div>
+                      <div className="usage-row">
+                        <span>Tokens</span>
+                        <span>
+                          {usage.tokensToday}/{usage.tokensLimit}
+                        </span>
+                      </div>
+                      <div className="usage-bar">
+                        <div
+                          className="usage-fill"
+                          style={{
+                            width: `${Math.min(
+                              100,
+                              (usage.tokensToday / usage.tokensLimit) * 100,
+                            )}%`,
+                          }}
+                        ></div>
+                      </div>
                     </div>
+                  )}
+                  <div className="kpi-row">
+                    <div className="kpi">
+                      <span className="kpi-label">Runs</span>
+                      <strong>{dashboard.totalRuns}</strong>
+                    </div>
+                    <div className="kpi">
+                      <span className="kpi-label">Assignments</span>
+                      <strong>{dashboard.recentAssignments?.length || 0}</strong>
+                    </div>
+                    <div className="kpi">
+                      <span className="kpi-label">Saved work</span>
+                      <strong>{dashboard.recentWork?.length || 0}</strong>
+                    </div>
+                    <div className="kpi">
+                      <span className="kpi-label">Plan</span>
+                      <strong>{user?.plan || 'free'}</strong>
+                    </div>
+                  </div>
+                <div className="dashboard-grid">
+                      <div className="card">
+                        <h4>Total runs</h4>
+                        <p>{dashboard.totalRuns}</p>
+                      </div>
                     <div className="card">
                       <h4>Avg tokens</h4>
                       <p>{dashboard.avgTokens}</p>
+                    </div>
+                    <div className="card">
+                      <h4>Assignments</h4>
+                      <p>{dashboard.recentAssignments?.length || 0}</p>
                     </div>
                   </div>
                   <div className="card">
@@ -828,14 +1659,48 @@ function App() {
                       ))}
                     </ul>
                   </div>
+                  <div className="card">
+                    <h4>Recent assignments</h4>
+                    <ul>
+                      {(dashboard.recentAssignments || []).map((assignment) => (
+                        <li key={assignment._id}>
+                          {assignment.title}
+                          {assignment.course ? ` — ${assignment.course}` : ''}
+                        </li>
+                      ))}
+                    </ul>
+                  </div>
+                  <div className="card">
+                    <h4>My saved work</h4>
+                    <ul>
+                      {(dashboard.recentWork || []).map((item) => (
+                        <li key={item._id}>
+                          {item.title} — {new Date(item.createdAt).toLocaleDateString()}
+                        </li>
+                      ))}
+                    </ul>
+                  </div>
+                  <div className="card">
+                    <h4>My saved work</h4>
+                    <ul>
+                      {(dashboard.recentWork || []).map((item) => (
+                        <li key={item._id}>
+                          {item.title} — {new Date(item.createdAt).toLocaleDateString()}
+                        </li>
+                      ))}
+                    </ul>
+                  </div>
                 </div>
               ) : (
                 <p className="hint">Loading dashboard…</p>
               )}
             </div>
           </section>
+          )}
 
+      {showTeamGroup && (
       <section className="account">
+        {showTeamsPage && (
         <div className="panel">
           <div className="panel-header">
             <div>
@@ -864,8 +1729,12 @@ function App() {
                 <select
                   value={selectedTeamId}
                   onChange={(event) => {
-                    setSelectedTeamId(event.target.value)
-                    loadMembers(event.target.value)
+                    const teamId = event.target.value
+                    setSelectedTeamId(teamId)
+                    loadMembers(teamId)
+                    loadAssignments(teamId)
+                    loadTeamRole(teamId)
+                    loadTeamDashboard(teamId)
                   }}
                 >
                   <option value="">Personal</option>
@@ -882,7 +1751,7 @@ function App() {
                   <input
                     value={inviteEmail}
                     onChange={(event) => setInviteEmail(event.target.value)}
-                    placeholder="email@company.com"
+                    placeholder="student@school.edu"
                   />
                 </label>
                 <button className="ghost" onClick={handleInvite}>
@@ -925,7 +1794,8 @@ function App() {
                         >
                           <option value="owner">Owner</option>
                           <option value="admin">Admin</option>
-                          <option value="member">Member</option>
+                          <option value="teacher">Teacher</option>
+                          <option value="member">Student</option>
                         </select>
                         <button
                           className="ghost small"
@@ -938,12 +1808,20 @@ function App() {
                   </ul>
                 </div>
               )}
+              {teams.length === 0 && (
+                <div className="card empty-card">
+                  <h4>No teams yet</h4>
+                  <p>Create a team to collaborate on group assignments.</p>
+                </div>
+              )}
             </div>
           ) : (
             <p className="hint">Sign in to manage teams.</p>
           )}
         </div>
+        )}
 
+        {showWorkspacePage && (
         <div className="panel">
           <div className="panel-header">
             <div>
@@ -1000,15 +1878,274 @@ function App() {
             <p className="hint">Sign in to manage workspaces.</p>
           )}
         </div>
-      </section>
+        )}
 
-      {user?.isAdmin && (
+        {showAssignmentsPage && (
+        <div className="panel">
+          <div className="panel-header">
+            <div>
+              <h2>Assignments</h2>
+              <p>Create assignment contexts for student projects.</p>
+            </div>
+            <span className="status">{user ? 'Ready' : 'Locked'}</span>
+          </div>
+          {user ? (
+            <div className="account-form">
+              <div className="field-grid">
+                <label>
+                  Title
+                  <input
+                    value={newAssignmentTitle}
+                    onChange={(event) =>
+                      setNewAssignmentTitle(event.target.value)
+                    }
+                    placeholder="Binary Search Tree Lab"
+                  />
+                </label>
+                <label>
+                  Course
+                  <input
+                    value={newAssignmentCourse}
+                    onChange={(event) =>
+                      setNewAssignmentCourse(event.target.value)
+                    }
+                    placeholder="CS201"
+                  />
+                </label>
+              </div>
+              <div className="field-grid">
+                <label>
+                  Template
+                  <select
+                    value={assignmentTemplate}
+                    onChange={(event) => {
+                      const value = event.target.value
+                      setAssignmentTemplate(value)
+                      const template = assignmentTemplates.find(
+                        (item) => item.id === value,
+                      )
+                      if (template) {
+                        setNewAssignmentTitle(template.title)
+                        setNewAssignmentDesc(template.description)
+                        setNewAssignmentRubric(template.rubric)
+                      }
+                    }}
+                  >
+                    {assignmentTemplates.map((template) => (
+                      <option key={template.id} value={template.id}>
+                        {template.label}
+                      </option>
+                    ))}
+                  </select>
+                </label>
+                <label>
+                  Rubric preset
+                  <select
+                    value={rubricPreset}
+                    onChange={(event) => {
+                      const value = event.target.value
+                      setRubricPreset(value)
+                      const preset = rubricPresets.find(
+                        (item) => item.id === value,
+                      )
+                      if (preset) setNewAssignmentRubric(preset.value)
+                    }}
+                  >
+                    {rubricPresets.map((preset) => (
+                      <option key={preset.id} value={preset.id}>
+                        {preset.label}
+                      </option>
+                    ))}
+                  </select>
+                </label>
+              </div>
+              <div className="field-grid">
+                <label>
+                  Due date
+                  <input
+                    type="date"
+                    value={newAssignmentDue}
+                    onChange={(event) =>
+                      setNewAssignmentDue(event.target.value)
+                    }
+                  />
+                </label>
+                <label>
+                  Rubric focus
+                  <input
+                    value={newAssignmentRubric}
+                    onChange={(event) =>
+                      setNewAssignmentRubric(event.target.value)
+                    }
+                    placeholder="Edge cases, input validation"
+                  />
+                </label>
+              </div>
+              <label>
+                Description
+                <textarea
+                  className="assignment-text"
+                  value={newAssignmentDesc}
+                  onChange={(event) =>
+                    setNewAssignmentDesc(event.target.value)
+                  }
+                  placeholder="Short summary of the assignment scope."
+                />
+              </label>
+              <button className="primary" onClick={handleCreateAssignment}>
+                Create assignment
+              </button>
+              <label>
+                Active assignment
+                <select
+                  value={selectedAssignmentId}
+                  onChange={(event) => setSelectedAssignmentId(event.target.value)}
+                >
+                  <option value="">None</option>
+                  {assignments.map((assignment) => (
+                    <option key={assignment._id} value={assignment._id}>
+                      {assignment.title}
+                    </option>
+                  ))}
+                </select>
+              </label>
+              {reportStatus && <p className="hint">{reportStatus}</p>}
+              {assignments.length > 0 && (
+                <div className="card">
+                  <h4>Assignments</h4>
+                  <ul>
+                    {assignments.map((assignment) => (
+                      <li key={assignment._id}>
+                        <span>
+                          {assignment.title}
+                          {assignment.course ? ` (${assignment.course})` : ''}
+                        </span>
+                        <div className="button-row">
+                          <button
+                            className="ghost small"
+                            onClick={() =>
+                              handleExportAssignmentReport(
+                                assignment._id,
+                                'json',
+                              )
+                            }
+                          >
+                            Export JSON
+                          </button>
+                          <button
+                            className="ghost small"
+                            onClick={() =>
+                              handleExportAssignmentReport(
+                                assignment._id,
+                                'csv',
+                              )
+                            }
+                          >
+                            Export CSV
+                          </button>
+                          <button
+                            className="ghost small"
+                            onClick={() => handleDeleteAssignment(assignment._id)}
+                          >
+                            Delete
+                          </button>
+                        </div>
+                      </li>
+                    ))}
+                  </ul>
+                </div>
+              )}
+              {assignments.length === 0 && (
+                <div className="card empty-card">
+                  <h4>No assignments yet</h4>
+                  <p>
+                    Choose a template and create your first assignment to unlock
+                    rubric-based test generation.
+                  </p>
+                </div>
+              )}
+            </div>
+          ) : (
+            <p className="hint">Sign in to manage assignments.</p>
+          )}
+        </div>
+        )}
+      </section>
+      )}
+
+      {activePage === 'teacher' && selectedTeamId && canTeacherView && (
         <section className="account">
           <div className="panel">
             <div className="panel-header">
               <div>
-                <h2>Admin audit</h2>
-                <p>Users and recent runs.</p>
+                <h2>Team teacher dashboard</h2>
+                <p>Assignment usage and team activity.</p>
+              </div>
+              <span className="status">Teacher</span>
+            </div>
+            {teamDashboard ? (
+              <div className="dashboard">
+                <div className="dashboard-grid">
+                  <div className="card">
+                    <h4>Members</h4>
+                    <p>{teamDashboard.memberCount}</p>
+                  </div>
+                  <div className="card">
+                    <h4>Total runs</h4>
+                    <p>{teamDashboard.totalRuns}</p>
+                  </div>
+                  <div className="card">
+                    <h4>Total tokens</h4>
+                    <p>{teamDashboard.totalTokens}</p>
+                  </div>
+                </div>
+                <div className="card">
+                  <h4>Runs by assignment</h4>
+                  <ul>
+                    {(teamDashboard.assignmentStats || []).map((item) => (
+                      <li key={item.assignmentId || item.title}>
+                        {item.title} â€” {item.count}
+                      </li>
+                    ))}
+                  </ul>
+                </div>
+                <div className="card">
+                  <h4>Recent team runs</h4>
+                  <ul>
+                    {(teamDashboard.recentRuns || []).map((run) => (
+                      <li key={run._id}>
+                        {run.language} â€” {run.framework} â€”{' '}
+                        {new Date(run.createdAt).toLocaleString()}
+                      </li>
+                    ))}
+                  </ul>
+                </div>
+                <div className="card">
+                  <h4>Team activity</h4>
+                  <ul>
+                    {(teamActivity || []).map((item) => (
+                      <li key={item._id}>
+                        {item.action.replace(/_/g, ' ')} â€”{' '}
+                        {new Date(item.createdAt).toLocaleDateString()}
+                      </li>
+                    ))}
+                  </ul>
+                </div>
+              </div>
+            ) : (
+              <p className="hint">Loading team dashboardâ€¦</p>
+            )}
+          </div>
+        </section>
+      )}
+
+      {activePage === 'admin' && user?.isAdmin && (
+        <section className="account">
+          <div className="panel">
+            <div className="panel-header">
+              <div>
+                <h2>Teacher dashboard</h2>
+                <p>Users, recent runs, and assignments.</p>
               </div>
               <span className="status">Admin</span>
             </div>
@@ -1041,6 +2178,27 @@ function App() {
                     ))}
                   </ul>
                 </div>
+                <div className="card">
+                  <h4>Recent assignments</h4>
+                  <ul>
+                    {(adminAudit.assignments || []).map((assignment) => (
+                      <li key={assignment._id}>
+                        {assignment.title}
+                        {assignment.course ? ` — ${assignment.course}` : ''}
+                      </li>
+                    ))}
+                  </ul>
+                </div>
+                <div className="card">
+                  <h4>Recent work</h4>
+                  <ul>
+                    {(adminAudit.work || []).map((item) => (
+                      <li key={item._id}>
+                        {item.title} — {item.language || 'Unknown'}
+                      </li>
+                    ))}
+                  </ul>
+                </div>
               </div>
             ) : (
               <p className="hint">Loading audit data…</p>
@@ -1049,12 +2207,169 @@ function App() {
         </section>
       )}
 
+      {activePage === 'users' && user?.isAdmin && (
+        <section className="account">
+          <div className="panel">
+            <div className="panel-header">
+              <div>
+                <h2>User directory</h2>
+                <p>Search and filter registered users.</p>
+              </div>
+              <span className="status">Admin</span>
+            </div>
+            <div className="account-form">
+              <label>
+                Search by email or name
+                <input
+                  value={userSearch}
+                  onChange={(event) => setUserSearch(event.target.value)}
+                  placeholder="Search..."
+                />
+              </label>
+            </div>
+            <div className="table">
+              <div className="table-row table-head">
+                <span>Email</span>
+                <span>Created</span>
+              </div>
+              {(adminUsers || [])
+                .filter((item) => {
+                  const term = userSearch.trim().toLowerCase()
+                  if (!term) return true
+                  return (
+                    item.email?.toLowerCase().includes(term) ||
+                    item.name?.toLowerCase().includes(term)
+                  )
+                })
+                .map((item) => (
+                  <div className="table-row" key={item._id}>
+                    <span>{item.email}</span>
+                    <span>
+                      {new Date(item.createdAt || item._id).toLocaleString()}
+                    </span>
+                  </div>
+                ))}
+            </div>
+          </div>
+        </section>
+      )}
+
+      {activePage === 'profile' && (
+        <section className="account">
+          <div className="panel">
+            <div className="panel-header">
+              <div>
+                <h2>Profile</h2>
+                <p>Update your name and password.</p>
+              </div>
+              <span className="status">Account</span>
+            </div>
+            <form
+              className="account-form"
+              onSubmit={(event) => {
+                event.preventDefault()
+                handleProfileSave()
+              }}
+            >
+              <label>
+                Name
+                <input
+                  value={profileName}
+                  onChange={(event) => setProfileName(event.target.value)}
+                  placeholder="Your name"
+                />
+              </label>
+              <label>
+                Major
+                <input
+                  value={profileMajor}
+                  onChange={(event) => setProfileMajor(event.target.value)}
+                  placeholder="Computer Science"
+                />
+              </label>
+              <label>
+                Year
+                <input
+                  value={profileYear}
+                  onChange={(event) => setProfileYear(event.target.value)}
+                  placeholder="Sophomore"
+                />
+              </label>
+              <label>
+                University
+                <input
+                  value={profileUniversity}
+                  onChange={(event) => setProfileUniversity(event.target.value)}
+                  placeholder="Your university"
+                />
+              </label>
+              <label>
+                Bio
+                <textarea
+                  value={profileBio}
+                  onChange={(event) => setProfileBio(event.target.value)}
+                  placeholder="Short bio about your studies."
+                />
+              </label>
+              <label>
+                New password
+                <input
+                  type="password"
+                  value={profilePassword}
+                  onChange={(event) => setProfilePassword(event.target.value)}
+                  placeholder="Minimum 8 characters"
+                />
+              </label>
+              <button className="primary" type="submit">
+                Save profile
+              </button>
+              {profileStatus && <p className="hint">{profileStatus}</p>}
+            </form>
+          </div>
+        </section>
+      )}
+
+      {activePage === 'billing' && (
+        <section className="account">
+          <div className="panel">
+            <div className="panel-header">
+              <div>
+                <h2>Plans & billing</h2>
+                <p>Student-first pricing with team support.</p>
+              </div>
+              <span className="status">Plans</span>
+            </div>
+            <div className="pricing-grid">
+              <div className="panel">
+                <h3>Free</h3>
+                <p className="price">$0</p>
+                <p>Basic generation, 50 runs/day.</p>
+                <button className="ghost small">Current plan</button>
+              </div>
+              <div className="panel highlight">
+                <h3>Pro Student</h3>
+                <p className="price">$6</p>
+                <p>Higher limits, priority queue, more exports.</p>
+                <button className="primary">Upgrade (placeholder)</button>
+              </div>
+              <div className="panel">
+                <h3>Team</h3>
+                <p className="price">$15</p>
+                <p>Shared workspaces, audit logs, team reports.</p>
+                <button className="ghost small">Contact admin</button>
+              </div>
+            </div>
+          </div>
+        </section>
+      )}
+
+      {showWorkspacePage && (
       <section className="workspace">
         <div className="panel input">
           <div className="panel-header">
             <div>
               <h2>Source input</h2>
-              <p>Drop a module or paste context-rich instructions.</p>
+              <p>Drop a module or paste assignment context.</p>
             </div>
             <span className="status">Ready</span>
           </div>
@@ -1132,6 +2447,28 @@ function App() {
               ))}
             </div>
           </div>
+          <div className="assignment-banner">
+            <div>
+              <p className="label">Assignment context</p>
+              <h4>
+                {selectedAssignment?.title || 'No assignment linked'}
+              </h4>
+              <p className="hint">
+                {selectedAssignment
+                  ? `${selectedAssignment.course || 'Course not set'}${
+                      selectedAssignment.dueDate
+                        ? ` â€” due ${new Date(
+                            selectedAssignment.dueDate,
+                          ).toLocaleDateString()}`
+                        : ''
+                    }`
+                  : 'Select an assignment to tailor tests and integrity rules.'}
+              </p>
+            </div>
+            <div className="integrity-pill">
+              {integrityMode ? 'Integrity mode on' : 'Integrity mode off'}
+            </div>
+          </div>
           <textarea
             value={input}
             onChange={(event) => setInput(event.target.value)}
@@ -1175,6 +2512,22 @@ function App() {
                 />
                 Add regression guards
               </label>
+              <label>
+                <input
+                  type="checkbox"
+                  checked={integrityMode}
+                  onChange={(event) => setIntegrityMode(event.target.checked)}
+                />
+                Plagiarism-safe mode
+              </label>
+              <label>
+                <input
+                  type="checkbox"
+                  checked={studyMode}
+                  onChange={(event) => setStudyMode(event.target.checked)}
+                />
+                Study mode
+              </label>
             </div>
             <button className="primary" onClick={handleGenerate}>
               {isGenerating ? 'Generating…' : 'Generate tests'}
@@ -1183,7 +2536,40 @@ function App() {
           {error && <div className="error">{error}</div>}
         </div>
 
-        <div className="panel output">
+        <div className="panel">
+          <div className="panel-header">
+            <div>
+              <h2>Comments</h2>
+              <p>Share notes with your team or self.</p>
+            </div>
+            <span className="status">Live</span>
+          </div>
+          <div className="account-form">
+            <label>
+              New comment
+              <textarea
+                value={commentDraft}
+                onChange={(event) => setCommentDraft(event.target.value)}
+                placeholder="Leave feedback for your team..."
+              />
+            </label>
+            <button className="ghost" onClick={handleAddComment}>
+              Post comment
+            </button>
+          </div>
+          <ul className="comment-list">
+            {comments.map((comment) => (
+              <li key={comment._id}>
+                <p>{comment.message}</p>
+                <span className="hint">
+                  {new Date(comment.createdAt).toLocaleString()}
+                </span>
+              </li>
+            ))}
+          </ul>
+        </div>
+
+        {!studyMode && <div className="panel output">
           <div className="panel-header">
             <div>
               <h2>Generated suite</h2>
@@ -1261,18 +2647,21 @@ function App() {
             </div>
           </div>
 
-          <div className="card code-block">
-            <div className="card-header">
-              <h4>Generated tests</h4>
-              <div className="button-row">
-                <button className="ghost small" onClick={handleCopy}>
-                  Copy
-                </button>
-                <button className="ghost small" onClick={handleExport}>
-                  Export
-                </button>
+            <div className="card code-block">
+              <div className="card-header">
+                <h4>Generated tests</h4>
+                <div className="button-row">
+                  <button className="ghost small" onClick={handleCopy}>
+                    Copy
+                  </button>
+                  <button className="ghost small" onClick={handleExport}>
+                    Export
+                  </button>
+                  <button className="ghost small" onClick={handleSaveWork}>
+                    Save to library
+                  </button>
+                </div>
               </div>
-            </div>
             <pre>
               <code>
                 {isStreaming && streamText ? streamText : result?.generated_tests}
@@ -1282,7 +2671,8 @@ function App() {
               {includeIntegration
                 ? 'Integration hooks included.'
                 : 'Integration tests disabled.'}{' '}
-              {includeRegression ? 'Regression guards included.' : ''}
+              {includeRegression ? 'Regression guards included.' : ''}{' '}
+              {integrityMode ? 'Integrity mode enforced.' : 'Integrity mode off.'}
             </p>
             <div className="export-row">
               <input
@@ -1292,6 +2682,7 @@ function App() {
               />
               <span className="hint">Saved path updates after export.</span>
             </div>
+            {workStatus && <p className="hint">{workStatus}</p>}
           </div>
 
           <div className="grid">
@@ -1335,9 +2726,34 @@ function App() {
               </p>
             )}
           </div>
-        </div>
+
+          <div className="card">
+            <h4>Version history</h4>
+            <div className="diff-row">
+              <input
+                value={versionLabel}
+                onChange={(event) => setVersionLabel(event.target.value)}
+                placeholder="Version label (e.g., v1, before refactor)"
+              />
+              <button className="ghost small" onClick={handleSaveVersion}>
+                Save version
+              </button>
+            </div>
+            <ul>
+              {versions.map((version) => (
+                <li key={version._id}>
+                  {version.label} â€”{' '}
+                  {new Date(version.createdAt).toLocaleDateString()}
+                </li>
+              ))}
+            </ul>
+          </div>
+        </div>}
       </section>
-    </div>
+      )}
+    </main>
+  </div>
+  </div>
   )
 }
 
@@ -1408,6 +2824,56 @@ EXISTING TESTS:
 NONE
 \`\`\`
 CONTEXT: Shared utility used in UI validation.`,
+  },
+]
+
+const assignmentTemplates = [
+  {
+    id: 'dsa',
+    label: 'DSA Project',
+    title: 'Data Structures & Algorithms Lab',
+    description:
+      'Implement core data structures or algorithms and verify performance and edge cases.',
+    rubric:
+      'Correctness, time complexity, edge cases, input validation, test coverage',
+  },
+  {
+    id: 'oop',
+    label: 'OOP Project',
+    title: 'Object-Oriented Design Assignment',
+    description:
+      'Build a modular, testable OOP solution with clear class responsibilities.',
+    rubric:
+      'Encapsulation, class design, SOLID principles, error handling, test coverage',
+  },
+  {
+    id: 'db',
+    label: 'Database Project',
+    title: 'Database Systems Assignment',
+    description:
+      'Design schema and implement queries with accuracy and performance in mind.',
+    rubric:
+      'Schema design, query correctness, indexing strategy, edge cases, test coverage',
+  },
+]
+
+const rubricPresets = [
+  {
+    id: 'balanced',
+    label: 'Balanced',
+    value:
+      'Correctness, edge cases, input validation, performance expectations, test coverage',
+  },
+  {
+    id: 'edge',
+    label: 'Edge-case heavy',
+    value:
+      'Boundary conditions, invalid inputs, null handling, error messages, test coverage',
+  },
+  {
+    id: 'performance',
+    label: 'Performance',
+    value: 'Complexity analysis, large inputs, runtime limits, test coverage',
   },
 ]
 
@@ -1640,3 +3106,16 @@ const parseSectionsFromMarkdown = (text = '') => {
 const estimateTokens = (text) => Math.max(1, Math.ceil(text.length / 4))
 
 const maxOutputTokens = 1800
+
+const isValidEmail = (value = '') =>
+  /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(value.trim())
+
+const isValidPassword = (value = '') => value.length >= 8
+
+
+
+
+
+
+
+
