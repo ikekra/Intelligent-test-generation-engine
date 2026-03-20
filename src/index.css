@@ -3,18 +3,20 @@
 :root {
   color-scheme: light;
   font-family: 'Space Grotesk', system-ui, sans-serif;
-  line-height: 1.5;
+  line-height: 1.6;
   font-weight: 400;
 
   --ink-strong: #1b1a17;
-  --ink-muted: #57534e;
-  --accent: #1d6f5b;
-  --surface: #fffdf9;
-  --surface-muted: #f3f2ee;
-  --line: #e0d9cf;
-  --chip-bg: #f1ece4;
-  --chip-live: #c8efe1;
+  --ink-muted: #4a4a45;
+  --accent: #155e50;
+  --accent-strong: #0f3d34;
+  --surface: #ffffff;
+  --surface-muted: #f4f2ee;
+  --line: #e5dfd6;
+  --chip-bg: #f2ece3;
+  --chip-live: #d6f2e7;
   --shadow: 0 20px 35px -30px rgba(34, 31, 26, 0.6);
+  --radius-xl: 20px;
   --mono: 'IBM Plex Mono', ui-monospace, SFMono-Regular, Consolas, monospace;
 
   font-synthesis: none;
@@ -30,7 +32,9 @@
 body {
   margin: 0;
   min-height: 100svh;
-  background: linear-gradient(180deg, #f6efe5 0%, #fbf9f4 55%, #ffffff 100%);
+  background: radial-gradient(circle at 10% 10%, #f3ece0, transparent 55%),
+    radial-gradient(circle at 90% 0%, #e6f2ee, transparent 50%),
+    linear-gradient(180deg, #f8f4ee 0%, #ffffff 100%);
   color: var(--ink-muted);
 }
 
