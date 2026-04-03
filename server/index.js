@@ -253,7 +253,7 @@ const authMiddleware = async (req, res, next) => {
     const payload = jwt.verify(token, jwtSecret)
     const user = await User.findById(payload.sub).lean()
     req.user = user || null
-  } catch (error) {
+  } catch {
     req.user = null
   }
   next()
@@ -286,6 +286,9 @@ const getTeamRole = async (userId, teamId) => {
   const membership = await TeamMember.findOne({ userId, teamId }).lean()
   return membership?.role || null
 }
+
+const canManageTeamRole = (role) =>
+  ['owner', 'admin', 'teacher'].includes(role)
 
 const requireTeamRole = (roles) => async (req, res, next) => {
   const { id } = req.params
@@ -517,7 +520,7 @@ const parseSectionsFromMarkdown = (text = '') => {
   const toList = (value) =>
     value
       .split('\n')
-      .map((line) => line.replace(/^[\-*]\s*/, '').trim())
+      .map((line) => line.replace(/^[-*]\s*/, '').trim())
       .filter(Boolean)
 
   sections.coverage_analysis = toList(getSection('Coverage analysis')).map(
@@ -1158,6 +1161,7 @@ app.get('/api/dashboard', async (req, res) => {
   if (!req.user) {
     return res.status(401).json({ error: 'Not authenticated.' })
   }
+  const since = new Date(Date.now() - 24 * 60 * 60 * 1000)
   const totalRuns = await Run.countDocuments({ userId: req.user._id })
   const recentRuns = await Run.find({ userId: req.user._id })
     .sort({ createdAt: -1 })
@@ -1184,6 +1188,15 @@ app.get('/api/dashboard', async (req, res) => {
     .sort({ createdAt: -1 })
     .limit(5)
     .lean()
+  const runsToday = await Run.countDocuments({
+    userId: req.user._id,
+    createdAt: { $gte: since },
+  })
+  const tokensAgg = await Run.aggregate([
+    { $match: { userId: req.user._id, createdAt: { $gte: since } } },
+    { $group: { _id: null, sum: { $sum: '$tokenEstimate' } } },
+  ])
+  const tokensToday = Number(tokensAgg[0]?.sum || 0)
   res.json({
     totalRuns,
     avgTokens,
@@ -1614,7 +1627,7 @@ app.post('/api/generate', async (req, res) => {
     let parsed = null
     try {
       parsed = JSON.parse(outputText)
-    } catch (error) {
+    } catch {
       parsed = null
     }
 
