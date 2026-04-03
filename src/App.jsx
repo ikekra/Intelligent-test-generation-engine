@@ -219,13 +219,6 @@ function App() {
 
   const isAppRoute = location.pathname.startsWith('/app/')
 
-  if (user && (location.pathname === '/' || location.pathname === '/login' || location.pathname === '/signup')) {
-    return <Navigate to="/app/dashboard" replace />
-  }
-  if (!user && isAppRoute) {
-    return <Navigate to="/" replace />
-  }
-
   const showTeamsPage = activePage === 'teams'
   const showAssignmentsPage = activePage === 'assignments'
   const showWorkspacePage = activePage === 'workspace'
@@ -302,6 +295,16 @@ function App() {
       if (selectedTeamId && canTeacherView) loadTeamActivity(selectedTeamId)
     }
   }, [user, selectedTeamId, selectedAssignmentId, selectedWorkspaceId])
+
+  if (!authChecked) {
+    return null
+  }
+  if (user && (location.pathname === '/' || location.pathname === '/login' || location.pathname === '/signup')) {
+    return <Navigate to="/app/dashboard" replace />
+  }
+  if (!user && isAppRoute) {
+    return <Navigate to="/" replace />
+  }
 
   const handleGenerate = async () => {
     setIsGenerating(true)
@@ -490,7 +493,7 @@ function App() {
         loadAdminUsers()
       }
       if (selectedTeamId) loadMembers(selectedTeamId)
-    } catch (err) {
+    } catch {
       setUser(null)
     } finally {
       setAuthChecked(true)
@@ -507,7 +510,7 @@ function App() {
       setDashboard(data)
       setWorkItems(data.recentWork || [])
       setUsage(data.usage || null)
-    } catch (err) {
+    } catch {
       setDashboard(null)
     }
   }
@@ -518,7 +521,7 @@ function App() {
       if (!response.ok) return
       const data = await response.json()
       setWorkItems(data.work || [])
-    } catch (err) {
+    } catch {
       setWorkItems([])
     }
   }
@@ -536,7 +539,7 @@ function App() {
       if (!response.ok) return
       const data = await response.json()
       setComments(data.comments || [])
-    } catch (err) {
+    } catch {
       setComments([])
     }
   }
@@ -554,7 +557,7 @@ function App() {
       if (!response.ok) return
       const data = await response.json()
       setVersions(data.versions || [])
-    } catch (err) {
+    } catch {
       setVersions([])
     }
   }
@@ -571,7 +574,7 @@ function App() {
       if (!response.ok) return
       const data = await response.json()
       setTeamActivity(data.activity || [])
-    } catch (err) {
+    } catch {
       setTeamActivity([])
     }
   }
@@ -582,7 +585,7 @@ function App() {
       if (!response.ok) return
       const data = await response.json()
       setTeams(data.teams || [])
-    } catch (err) {
+    } catch {
       setTeams([])
     }
   }
@@ -593,7 +596,7 @@ function App() {
       if (!response.ok) return
       const data = await response.json()
       setWorkspaces(data.workspaces || [])
-    } catch (err) {
+    } catch {
       setWorkspaces([])
     }
   }
@@ -610,7 +613,7 @@ function App() {
       if (!response.ok) return
       const data = await response.json()
       setTeamRole(data.role || '')
-    } catch (err) {
+    } catch {
       setTeamRole('')
     }
   }
@@ -627,7 +630,7 @@ function App() {
       if (!response.ok) return
       const data = await response.json()
       setTeamDashboard(data)
-    } catch (err) {
+    } catch {
       setTeamDashboard(null)
     }
   }
@@ -642,7 +645,7 @@ function App() {
       if (!response.ok) return
       const data = await response.json()
       setAssignments(data.assignments || [])
-    } catch (err) {
+    } catch {
       setAssignments([])
     }
   }
@@ -659,7 +662,7 @@ function App() {
       if (!response.ok) return
       const data = await response.json()
       setTeamMembers(data.members || [])
-    } catch (err) {
+    } catch {
       setTeamMembers([])
     }
   }
@@ -672,7 +675,7 @@ function App() {
       if (!response.ok) return
       const data = await response.json()
       setInvites(data.invites || [])
-    } catch (err) {
+    } catch {
       setInvites([])
     }
   }
@@ -685,7 +688,7 @@ function App() {
       if (!response.ok) return
       const data = await response.json()
       setAdminAudit(data)
-    } catch (err) {
+    } catch {
       setAdminAudit(null)
     }
   }
@@ -698,7 +701,7 @@ function App() {
       if (!response.ok) return
       const data = await response.json()
       setAdminUsers(data.users || [])
-    } catch (err) {
+    } catch {
       setAdminUsers([])
     }
   }
@@ -2765,7 +2768,7 @@ function loadSettings() {
   try {
     const raw = localStorage.getItem(SETTINGS_KEY)
     return raw ? JSON.parse(raw) : {}
-  } catch (error) {
+  } catch {
     return {}
   }
 }
@@ -2929,7 +2932,7 @@ const parsePatterns = (value) =>
     .filter(Boolean)
 
 const toRegex = (pattern) => {
-  const normalized = /[\*\?]/.test(pattern) ? pattern : `*${pattern}*`
+  const normalized = /[*?]/.test(pattern) ? pattern : `*${pattern}*`
   const escaped = normalized.replace(/[.+^${}()|[\]\\]/g, '\\$&')
   const regex = escaped.replace(/\*/g, '.*').replace(/\?/g, '.')
   return new RegExp(`^${regex}$`, 'i')
@@ -3089,7 +3092,7 @@ const parseSectionsFromMarkdown = (text = '') => {
   const toList = (value) =>
     value
       .split('\n')
-      .map((line) => line.replace(/^[\-*]\s*/, '').trim())
+      .map((line) => line.replace(/^[-*]\s*/, '').trim())
       .filter(Boolean)
 
   return {
